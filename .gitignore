@@ -15,3 +15,7 @@
 *.exe
 *.out
 *.app
+navis
+
+# Directory with some testing files
+tmp
