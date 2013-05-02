@@ -2,7 +2,7 @@ CC       = gcc
 VERSION := ${shell cat VERSION}
 CFLAGS  := $(CFLAGS) -g -Wall -Wextra -std=gnu99 -D'VERSION="$(VERSION)"'
 
-OBJS = navis.o
+OBJS = navis.o helper.o
 
 .PHONY: all clean distclean
 all: navis error_pages
@@ -11,6 +11,7 @@ navis: $(OBJS)
 	$(CC) $(OBJS) $(CFLAGS) -o navis
 
 navis.o: navis.c navis.h
+helper.o: helper.c helper.h
 
 install: navis
 	install -D -m755 navis $(PREFIX)/bin/navis

@@ -41,9 +41,11 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 #include <signal.h>
+#include <dirent.h>
 #include <getopt.h>
 
 #include "navis.h"
+#include "helper.h"
 
 static struct mime {
   const char * const ext;
@@ -214,10 +216,16 @@ int main(int argc, char **argv)
           break;
         }
       }
-      snprintf(content_length_str, 7, "%d", content_length);
-      /* print the header response */
-      send_header(newfd, code, content_length_str, mime_type);
-      send_file(newfd, fp);
+      /* if the "file" is a directory print some nice-looking page with
+       * hyperlinks of the files and stuff */
+      if (isdir(fname)){
+        send_directory(newfd, fname);
+      } else {
+        snprintf(content_length_str, 7, "%d", content_length);
+        /* print the header response */
+        send_header(newfd, code, content_length_str, mime_type);
+        send_file(newfd, fp);
+      }
       close(newfd);
       exit(0);
     }
@@ -249,21 +257,89 @@ void send_file(int fd, FILE *fp)
   }
 }
 
-char *getext(char *s)
+void send_directory(int fd, char *fname)
 {
-  static char ext[7];
-  int i = 0;
-  char *p = s + strlen(s) - 1;
-  while (p != s){
-    if (*p == '.')
-      break;
-    ext[i] = *p;
-    p--; i++;
+  struct dirent *entry;
+  unsigned content_length = 0;
+  char content_length_str[7];
+  /* remove the tailing slash if present */
+  if (fname[strlen(fname) - 1] == '/'){
+    fname[strlen(fname) - 1] = '\0';
   }
-  /* reverse the extension */
-  strrev(ext);
+  /* open the directory */
+  DIR *dp;
+  if ((dp = opendir(fname)) == NULL){
+    perror("opendir");
+    exit(1);
+  }
+  /* for the first time, we need the total length of the entries */
+  while ((entry = readdir(dp))){
+    if (!strcmp(".", entry->d_name))
+      continue;
 
-  return ext;
+    content_length +=
+      /* "<a href='" */
+      9 +
+      /* the directory's name */
+      strlen(fname) +
+      /* "/" */
+      2 +
+      /* the file's name */
+      strlen(entry->d_name) +
+      /* "'>" */
+      2 +
+      /* the filename again */
+      strlen(entry->d_name) +
+      /* "</a><br>" */
+      8;
+  }
+  closedir(dp);
+
+  const char *html_header_1part =
+    "<!doctype>"
+    "<html>"
+      "<head>"
+        "<title>Listing of "
+    ;
+
+  const char *html_header_2part =
+        "</title>"
+        "<style type='text/css'>"
+          "a, a:active, a:visited { text-decoration: none; color: #336699; }"
+          "a:hover { text-decoration: none; color: #993333; }"
+        "</style>"
+      "</head>"
+      "<body>"
+    ;
+  const char *html_footer =
+      "</body>"
+    "</html>"
+    ;
+
+  content_length += strlen(html_header_1part);
+  content_length += strlen(html_header_2part);
+  content_length += strlen(html_footer);
+
+  sprintf(content_length_str, "%d", content_length);
+  send_header(fd, "200 OK", content_length_str, "text/html");
+  /* for the second time, we actually print the entries */
+  write(fd, html_header_1part, strlen(html_header_1part));
+  write(fd, fname, strlen(fname));
+  write(fd, html_header_2part, strlen(html_header_2part));
+  char line[255];
+  if ((dp = opendir(fname)) == NULL){
+    perror("opendir");
+    exit(1);
+  }
+  while ((entry = readdir(dp))){
+    if (!strcmp(".", entry->d_name))
+      continue;
+
+    sprintf(line, "<a href='/%s/%s'>%s</a><br>", fname, entry->d_name, entry->d_name);
+    write(fd, line, strlen(line));
+  }
+  write(fd, html_footer, strlen(html_footer));
+  closedir(dp);
 }
 
 void sigchld_handler(int s)
@@ -282,17 +358,5 @@ void *get_in_addr(struct sockaddr *sa)
   }
 
   return &(((struct sockaddr_in6*)sa)->sin6_addr);
-}
-
-void strrev(char *s)
-{
-  int len = strlen(s);
-  int c, i, j;
-
-  for (i = 0, j = len - 1; i < j; i++, j--){
-    c = s[i];
-    s[i] = s[j];
-    s[j] = c;
-  }
 }
 

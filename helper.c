@@ -1,8 +1,8 @@
 /*
  *
- * navis.h
+ * helper.c
  *
- * Created at:  Thu 02 May 2013 09:41:40 CEST 09:41:40
+ * Created at:  Thu 02 May 2013 17:12:48 CEST 17:12:48
  *
  * Author:  Szymon Urbaś <szymon.urbas@aol.com>
  *
@@ -28,29 +28,58 @@
  *
  */
 
-#ifndef NAVIS_H
-#define NAVIS_H
-
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
+#include <netinet/in.h>
 
-/* maximum size of the request header */
-#define MAX_HEADER_REQUEST 1024
-/* the port users will connect to */
-#define PORT "1337"
-/* how many pending connections queue will hold */
-#define BACKLOG 10
+#include "navis.h"
+#include "helper.h"
 
-#undef BOOL
-#  define BOOL short
-#undef TRUE
-#  define TRUE 1
-#undef FALSE
-#  define FALSE 0
+/*
+ * Check if given <fname> is a directory or not.
+ */
+BOOL isdir(char *fname)
+{
+  struct stat st;
+  stat(fname, &st);
 
-void send_header(int fd, const char *code, char *content_length, const char *mime_type);
-void send_file(int fd, FILE *fp);
-void send_directory(int fd, char *fn);
-void sigchld_handler(int s);
-void *get_in_addr(struct sockaddr *sa);
+  return S_ISDIR(st.st_mode);
+}
 
-#endif /* NAVIS_H */
+/*
+ * My little implementation of getting an extension from a file.
+ */
+char *getext(char *s)
+{
+  static char ext[7];
+  int i = 0;
+  char *p = s + strlen(s) - 1;
+  while (p != s){
+    if (*p == '.')
+      break;
+    ext[i] = *p;
+    p--; i++;
+  }
+  /* reverse the extension */
+  strrev(ext);
+
+  return ext;
+}
+
+/*
+ * Reverse given string.
+ */
+void strrev(char *s)
+{
+  int len = strlen(s);
+  int c, i, j;
+
+  for (i = 0, j = len - 1; i < j; i++, j--){
+    c = s[i];
+    s[i] = s[j];
+    s[j] = c;
+  }
+}
+

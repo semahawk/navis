@@ -1,8 +1,8 @@
 /*
  *
- * navis.h
+ * helper.h
  *
- * Created at:  Thu 02 May 2013 09:41:40 CEST 09:41:40
+ * Created at:  Thu 02 May 2013 17:16:06 CEST 17:16:06
  *
  * Author:  Szymon Urbaś <szymon.urbas@aol.com>
  *
@@ -28,29 +28,14 @@
  *
  */
 
-#ifndef NAVIS_H
-#define NAVIS_H
+#ifndef HELPER_H
+#define HELPER_H
 
-#include <stdio.h>
+#include "navis.h"
 
-/* maximum size of the request header */
-#define MAX_HEADER_REQUEST 1024
-/* the port users will connect to */
-#define PORT "1337"
-/* how many pending connections queue will hold */
-#define BACKLOG 10
+BOOL isdir(char *s);
+char *getext(char *s);
+void strrev(char *s);
 
-#undef BOOL
-#  define BOOL short
-#undef TRUE
-#  define TRUE 1
-#undef FALSE
-#  define FALSE 0
+#endif /* HELPER_H */
 
-void send_header(int fd, const char *code, char *content_length, const char *mime_type);
-void send_file(int fd, FILE *fp);
-void send_directory(int fd, char *fn);
-void sigchld_handler(int s);
-void *get_in_addr(struct sockaddr *sa);
-
-#endif /* NAVIS_H */
