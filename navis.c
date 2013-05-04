@@ -46,6 +46,7 @@
 
 #include "navis.h"
 #include "helper.h"
+#include "conf.h"
 
 static struct mime {
   const char * const ext;
@@ -62,6 +63,8 @@ static struct mime {
 
 int main(int argc, char **argv)
 {
+  /* the main configuration */
+  struct conf conf;
   /* manage the command line options */
   int c;
   while (1){
@@ -94,13 +97,15 @@ int main(int argc, char **argv)
   int yes = 1;
   char s[INET6_ADDRSTRLEN];
   int rv;
-
+  /* parse the configuration file and save the options */
+  fetchConf(&conf);
+  /* clear the hints */
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = AI_PASSIVE; /* use my IP */
 
-  if ((rv = getaddrinfo(NULL, PORT, &hints, &servinfo)) != 0){
+  if ((rv = getaddrinfo(NULL, conf.port, &hints, &servinfo)) != 0){
     fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
     return 1;
   }
@@ -126,7 +131,7 @@ int main(int argc, char **argv)
   }
 
   if (p == NULL){
-    fprintf(stderr, "navis: failed to bind\n");
+    fprintf(stderr, "navis: failed to bind to port %s\n", conf.port);
     return 2;
   }
   /* all done with this structure */
@@ -147,7 +152,7 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  printf(" \e[1;32m*\e[0;0m Navis v" VERSION " listening at port %s\n", PORT);
+  printf(" \e[1;32m*\e[0;0m Navis v" VERSION " listening at port %s\n", conf.port);
 
   while (1){
     unsigned content_length = 0;
@@ -232,6 +237,8 @@ int main(int argc, char **argv)
     /* parent doesn't need this */
     close(newfd);
   }
+  /* tidy up the configuration */
+  confDestroy(&conf);
 
   return 0;
 }
