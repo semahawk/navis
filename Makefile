@@ -4,7 +4,7 @@ CFLAGS  := $(CFLAGS) -g -Wall -Wextra -std=gnu99 -D'VERSION="$(VERSION)"'
 
 OBJS = navis.o conf.o helper.o
 
-.PHONY: all clean distclean
+.PHONY: all install uninstall clean distclean
 all: navis
 
 navis: $(OBJS)

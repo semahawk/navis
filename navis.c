@@ -48,6 +48,8 @@
 #include "helper.h"
 #include "conf.h"
 
+static int verbose = 0;
+
 static struct mime {
   const char * const ext;
   const char * const type;
@@ -69,22 +71,26 @@ int main(int argc, char **argv)
   int c;
   while (1){
     static struct option long_options[] = {
-      { "version", no_argument, 0, 'v' },
+      { "verbose", no_argument, 0, 'v' },
+      { "version", no_argument, 0, 'V' },
       { 0, 0, 0, 0 }
     };
 
     int option_index = 0;
 
-    c = getopt_long(argc, argv, "v", long_options, &option_index);
+    c = getopt_long(argc, argv, "Vv", long_options, &option_index);
 
     if (c == -1)
       break;
 
     switch (c){
-      case 'v': printf("Navis v" VERSION ", " __DATE__ " " __TIME__"\n");
+      case 'v': verbose = 1;
+                break;
+      case 'V': printf("Navis v" VERSION ", " __DATE__ " " __TIME__"\n");
                 return EXIT_SUCCESS;
-      case '?': break;
-      default: abort();
+      case '?': return EXIT_FAILURE;
+                break;
+      default:  abort();
     }
   }
   /* listen on sockfd, new connections on newfd */
@@ -152,7 +158,8 @@ int main(int argc, char **argv)
     exit(1);
   }
 
-  printf(" \e[1;32m*\e[0;0m Navis v" VERSION " listening at port %s\n", conf.port);
+  if (verbose)
+    printf(" \e[1;32m*\e[0;0m Navis v" VERSION " listening at port %s\n", conf.port);
 
   while (1){
     unsigned content_length = 0;
@@ -199,7 +206,8 @@ int main(int argc, char **argv)
       n = 0;
       while (fname[n] != ' ') n++;
       fname[n] = '\0';
-      printf(" \e[1;34m*\e[0;0m %s (%s) %s\n", method, s, fname);
+      if (verbose)
+        printf(" \e[1;34m*\e[0;0m %s (%s) %s\n", method, s, fname);
       /* OPEN THE FILE! */
       fp = fopen(fname, "rb");
       if (!fp){
